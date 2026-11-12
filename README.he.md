@@ -1,5 +1,7 @@
 <div dir="rtl">
 
+<img src="custom_components/tuya_keep/brand/icon@2x.png" alt="" width="112" align="right">
+
 # Tuya Keep
 
 **חיישני Tuya שומרים את הערך האחרון שלהם אחרי הפעלה מחדש של Home Assistant, במקום להציג "לא ידוע" עד שעה.**

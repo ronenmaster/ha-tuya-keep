@@ -1,3 +1,5 @@
+<img src="custom_components/tuya_keep/brand/icon@2x.png" alt="" width="112" align="right">
+
 # Tuya Keep
 
 **Tuya sensors keep their last value after a Home Assistant restart, instead of showing "Unknown" for up to an hour.**

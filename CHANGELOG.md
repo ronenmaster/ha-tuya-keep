@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- Own icon (custom_components/tuya_keep/brand), shown by Home Assistant 2026 and later.
+
 ## 1.0.0
 
 First release.
