@@ -1,0 +1,67 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tuya Keep",
+        "description": "Tuya sensors will keep their last known value after a restart of Home Assistant or a reload of the Tuya integration, instead of showing \"Unknown\" until the device reports again.\n\nThe official Tuya integration is not changed. You can change the settings later under Configure."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Tuya Keep is already set up. One entry covers all your Tuya devices."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tuya Keep settings",
+        "data": {
+          "max_age_hours": "Keep a value for at most",
+          "include_non_numeric": "Also keep text values",
+          "platforms": "Integrations to watch",
+          "exclude_entities": "Sensors to leave alone"
+        },
+        "data_description": {
+          "max_age_hours": "A value older than this is not put back; the sensor stays \"Unknown\" until the device reports. 0 means no limit.",
+          "include_non_numeric": "Off: only numbers (temperature, humidity, battery, power). On: also text states such as \"low\" or \"charging\".",
+          "platforms": "Sensors of these integrations are watched. \"tuya\" is the official Tuya integration.",
+          "exclude_entities": "These sensors are never restored."
+        },
+        "sections": {
+          "cloud": {
+            "name": "Read real values from the Tuya cloud (optional)",
+            "description": "With your own Tuya IoT cloud project, the real last values are read from the Tuya cloud a few seconds after a restart and handed to the official integration, as if the devices had reported them. Leave \"Not used\" to keep only the restored values. The README explains how to create the project.",
+            "data": {
+              "endpoint": "Data center",
+              "access_id": "Access ID",
+              "access_secret": "Access Secret"
+            },
+            "data_description": {
+              "endpoint": "The data center of your cloud project (the same region as your Smart Life or Tuya app account).",
+              "access_id": "From the cloud project's Overview page (also called Client ID).",
+              "access_secret": "From the cloud project's Overview page (also called Client Secret)."
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "cloud_missing": "Enter both the Access ID and the Access Secret, or set the data center to \"Not used\".",
+      "invalid_auth": "The Tuya cloud refused these keys for this data center.",
+      "cannot_connect": "Could not reach the Tuya cloud."
+    }
+  },
+  "selector": {
+    "endpoint": {
+      "options": {
+        "none": "Not used",
+        "eu": "Central Europe",
+        "eu_west": "Western Europe",
+        "us": "Western America",
+        "us_east": "Eastern America",
+        "cn": "China",
+        "in": "India",
+        "sg": "Singapore"
+      }
+    }
+  }
+}

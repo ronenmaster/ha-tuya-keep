@@ -1,0 +1,67 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tuya Keep",
+        "description": "חיישני Tuya ישמרו את הערך האחרון הידוע שלהם אחרי הפעלה מחדש של Home Assistant או טעינה מחדש של אינטגרציית Tuya, במקום להציג \"לא ידוע\" עד שהמכשיר ידווח שוב.\n\nהאינטגרציה הרשמית של Tuya לא משתנה. אפשר לשנות את ההגדרות אחר כך דרך \"הגדרה\"."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Tuya Keep כבר מוגדר. הגדרה אחת מכסה את כל מכשירי Tuya."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "הגדרות Tuya Keep",
+        "data": {
+          "max_age_hours": "לשמור ערך לכל היותר",
+          "include_non_numeric": "לשמור גם ערכי טקסט",
+          "platforms": "אינטגרציות למעקב",
+          "exclude_entities": "חיישנים שלא לגעת בהם"
+        },
+        "data_description": {
+          "max_age_hours": "ערך ישן יותר מזה לא מוחזר, והחיישן נשאר \"לא ידוע\" עד שהמכשיר ידווח. 0 פירושו בלי הגבלה.",
+          "include_non_numeric": "כבוי: רק מספרים (טמפרטורה, לחות, סוללה, הספק). פועל: גם מצבי טקסט כמו \"low\" או \"charging\".",
+          "platforms": "החיישנים של האינטגרציות האלה במעקב. \"tuya\" היא אינטגרציית Tuya הרשמית.",
+          "exclude_entities": "החיישנים האלה לעולם לא מוחזרים."
+        },
+        "sections": {
+          "cloud": {
+            "name": "קריאת הערכים האמיתיים מענן Tuya (רשות)",
+            "description": "עם פרויקט ענן משלך ב-Tuya IoT, הערכים האחרונים האמיתיים נקראים מענן Tuya כמה שניות אחרי הפעלה מחדש ונמסרים לאינטגרציה הרשמית, כאילו המכשירים דיווחו אותם. השאר \"לא בשימוש\" כדי להסתפק בערכים השמורים. קובץ ה-README מסביר איך יוצרים את הפרויקט.",
+            "data": {
+              "endpoint": "מרכז נתונים",
+              "access_id": "Access ID",
+              "access_secret": "Access Secret"
+            },
+            "data_description": {
+              "endpoint": "מרכז הנתונים של פרויקט הענן (אותו אזור כמו חשבון Smart Life או Tuya שלך).",
+              "access_id": "מעמוד Overview של פרויקט הענן (נקרא גם Client ID).",
+              "access_secret": "מעמוד Overview של פרויקט הענן (נקרא גם Client Secret)."
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "cloud_missing": "צריך למלא גם Access ID וגם Access Secret, או לבחור מרכז נתונים \"לא בשימוש\".",
+      "invalid_auth": "ענן Tuya דחה את המפתחות האלה למרכז הנתונים הזה.",
+      "cannot_connect": "אין חיבור לענן Tuya."
+    }
+  },
+  "selector": {
+    "endpoint": {
+      "options": {
+        "none": "לא בשימוש",
+        "eu": "מרכז אירופה",
+        "eu_west": "מערב אירופה",
+        "us": "מערב אמריקה",
+        "us_east": "מזרח אמריקה",
+        "cn": "סין",
+        "in": "הודו",
+        "sg": "סינגפור"
+      }
+    }
+  }
+}

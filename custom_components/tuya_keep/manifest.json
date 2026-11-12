@@ -1,0 +1,14 @@
+{
+  "domain": "tuya_keep",
+  "name": "Tuya Keep",
+  "after_dependencies": ["recorder", "tuya"],
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/ronenmaster/ha-tuya-keep",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/ronenmaster/ha-tuya-keep/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

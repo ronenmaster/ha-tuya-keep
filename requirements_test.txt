@@ -1,0 +1,3 @@
+# Test harness that matches a Home Assistant release (see its PyPI page
+# for the Home Assistant version it pins).
+pytest-homeassistant-custom-component
