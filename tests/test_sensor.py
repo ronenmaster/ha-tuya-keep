@@ -71,7 +71,14 @@ async def test_sensors_follow_what_is_kept(
     assert hass.states.get("sensor.tuya_keep_kept_now").state == "0"
 
     # One service device holds them; no cloud sensors without keys.
-    device = dr.async_get(hass).async_get_device({(DOMAIN, entry.entry_id)})
+    reg = dr.async_get(hass)
+    # (Home Assistant 2026.10 and later: identifiers are unique per config entry)
+    by_id = getattr(reg, "async_get_device_by_identifier", None)
+    device = (
+        by_id((DOMAIN, entry.entry_id), entry.entry_id)
+        if by_id
+        else reg.async_get_device({(DOMAIN, entry.entry_id)})
+    )
     assert device is not None
     assert device.entry_type is dr.DeviceEntryType.SERVICE
     assert hass.states.get("sensor.tuya_keep_cloud_status") is None

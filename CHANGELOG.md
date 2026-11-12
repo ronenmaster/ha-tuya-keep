@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Fix: on Home Assistant 2026 the "last value" companions were put on a new device of Tuya Keep's own, named "Tuya Keep", instead of on their Tuya device (Home Assistant now keeps device identifiers per integration), so they were called "Tuya Keep Temperature last value". They are now linked to the Tuya device itself ("<device> Temperature last value"), the way Home Assistant asks, and the copied devices are removed at start. Entity ids stay the same, so dashboards and automations keep working.
+
 ## 1.4.0
 
 Following the Home Assistant Tuya maintainers' advice (core#178105):

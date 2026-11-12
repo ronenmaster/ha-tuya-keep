@@ -272,5 +272,8 @@ async def test_companion_on_the_tuya_device(
     assert companion.attributes["live"] is False
     reg = er.async_get(hass)
     assert reg.async_get(f"{temp}_last").device_id == reg.async_get(temp).device_id
+    # (the Tuya device itself, not a copy of Tuya Keep's: Tuya Keep owns only its service device)
     device = dr.async_get(hass).async_get(reg.async_get(temp).device_id)
-    assert keep.entry_id in device.config_entries
+    assert companion.attributes["friendly_name"].startswith(device.name)
+    own = dr.async_entries_for_config_entry(dr.async_get(hass), keep.entry_id)
+    assert all((DOMAIN, keep.entry_id) in d.identifiers for d in own)

@@ -11,6 +11,12 @@ Tuya Keep adds its own "<name> last value" sensor on the same device:
 - it restores itself across restarts the way every Home Assistant sensor can
   (RestoreSensor), so it has a value right after a restart.
 
+It is linked to the Tuya sensor's device by setting the entity's device entry
+(not a device info with the Tuya device's identifiers: since Home Assistant
+made device identifiers unique per config entry, that made a new device of
+Tuya Keep's own, named "Tuya Keep", instead of linking - fixed in 1.4.1, and
+those devices are removed at start).
+
 Dashboards and automations point at the companion when they want the last
 known value, and at the Tuya sensor when they want only live readings.
 """
@@ -25,7 +31,6 @@ from homeassistant.components.sensor import RestoreSensor
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -73,14 +78,15 @@ class KeptValueSensor(RestoreSensor):
         keeper: Keeper,
         source: er.RegistryEntry,
         name_part: str,
-        device: DeviceInfo | None,
+        device: dr.DeviceEntry | None,
     ) -> None:
         """One companion for one source sensor."""
         self._keeper = keeper
         self._source = source.entity_id
         self._attr_unique_id = f"kept_{source.id}"
         self._attr_translation_placeholders = {"name": name_part}
-        self._attr_device_info = device
+        # (linked to the Tuya sensor's own device, so its name is "<device> <sensor> last value")
+        self.device_entry = device
         self._attr_native_unit_of_measurement = source.unit_of_measurement
         self._attr_device_class = source.original_device_class  # type: ignore[assignment]
         self._attr_state_class = (source.capabilities or {}).get("state_class")
@@ -216,10 +222,15 @@ class Companions:
     """Adds, renames and removes the companion sensors as Tuya's change."""
 
     def __init__(
-        self, hass: HomeAssistant, keeper: Keeper, add: AddConfigEntryEntitiesCallback
+        self,
+        hass: HomeAssistant,
+        keeper: Keeper,
+        add: AddConfigEntryEntitiesCallback,
+        entry_id: str,
     ) -> None:
         """Nothing is made until start()."""
         self.hass = hass
+        self._entry_id = entry_id
         self._keeper = keeper
         self._add = add
         self._by_source: dict[str, KeptValueSensor] = {}
@@ -229,9 +240,9 @@ class Companions:
     def start(self) -> None:
         """A companion for each watched number sensor; follow the registry."""
         registry = er.async_get(self.hass)
-        new = [
-            self._make(e) for e in list(registry.entities.values()) if self._wanted(e)
-        ]
+        wanted = [e for e in list(registry.entities.values()) if self._wanted(e)]
+        self._drop_own_copies({e.device_id for e in wanted if e.device_id})
+        new = [self._make(e) for e in wanted]
         self._add([c for c in new if c is not None])
         self._unsubs.append(
             self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._registry)
@@ -260,12 +271,41 @@ class Companions:
             and (is_numeric_source(entry) or self._keeper.non_numeric)
         )
 
+    @callback
+    def _drop_own_copies(self, source_devices: set[str]) -> None:
+        """Remove the devices 1.4.0 made by mistake (a copy of each Tuya device, owned by Tuya Keep).
+
+        Home Assistant's own way for an integration that links to another's devices: its copy
+        of the source device goes, and its entities are linked to the source device again.
+        Only when Tuya Keep owns more than its own service device; older Home Assistant
+        versions (devices shared between integrations) never made such copies.
+        """
+        dev_reg = dr.async_get(self.hass)
+        mine = dr.async_entries_for_config_entry(dev_reg, self._entry_id)
+        if not any((DOMAIN, self._entry_id) not in d.identifiers for d in mine):
+            return
+        try:
+            from homeassistant.helpers.helper_integration import (  # noqa: PLC0415
+                async_remove_helper_devices,
+            )
+        except ImportError:  # (an older Home Assistant: nothing of this kind to clean)
+            return
+        for device_id in sorted(source_devices):
+            try:
+                async_remove_helper_devices(
+                    self.hass,
+                    helper_config_entry_id=self._entry_id,
+                    source_device_id=device_id,
+                )
+            except Exception:  # noqa: BLE001 - a leftover device is no reason to fail
+                LOGGER.debug("Could not remove a copied device", exc_info=True)
+
     def _make(self, entry: er.RegistryEntry) -> KeptValueSensor | None:
-        device = None
-        if entry.device_id:
-            dev = dr.async_get(self.hass).async_get(entry.device_id)
-            if dev is not None and dev.identifiers:
-                device = DeviceInfo(identifiers=set(dev.identifiers))
+        device = (
+            dr.async_get(self.hass).async_get(entry.device_id)
+            if entry.device_id
+            else None
+        )
         sensor = KeptValueSensor(
             self._keeper, entry, _entity_part(self.hass, entry), device
         )

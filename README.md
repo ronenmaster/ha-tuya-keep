@@ -222,6 +222,7 @@ Before you report a Tuya problem to Home Assistant, **reproduce it with Tuya Kee
 | The companion (or, in place mode, the sensor) is still Unknown | Was there a real value in the last 24 h (or your limit)? A brand new sensor has nothing to keep yet. Is the sensor's integration `tuya`? |
 | A smoke detector still shows smoke | A false alarm from before the update clears at the next restart. Afterwards, check *Unknown values ignored*: its `recent` attribute shows what was ignored. A real alarm (`"1"` or `"alarm"`) is never ignored. |
 | Values are restored but very old | Lower *Keep a value for at most*, or set up the cloud part. |
+| Companions are called "Tuya Keep ... last value" | Update to 1.4.1 or later and restart: they move to their Tuya device and take its name. |
 | A sensor is listed as silent | Check its battery and range; the time it was last seen is in the attributes. |
 | Cloud: "The Tuya cloud refused these keys" | The data center must match the project. Copy the keys again from the Overview page. |
 | Cloud saves, but values are still kept ones | Link the app account to the project (step 4). Check diagnostics: `cloud.last_error`. |
@@ -234,7 +235,7 @@ pip install pytest-homeassistant-custom-component tuya-device-sharing-sdk ha-ffm
 pytest
 ```
 
-43 tests. They include end to end runs with the real official Tuya integration and the real Tuya SDK, with the cloud replaced by an offline stand-in: one returns an empty status (problem 1), one sends the detector's `"23"` (problem 2: without the guard the smoke sensor turns on, with it the state stays, and `"1"`/`"2"` still work).
+45 tests. They include end to end runs with the real official Tuya integration and the real Tuya SDK, with the cloud replaced by an offline stand-in: one returns an empty status (problem 1), one sends the detector's `"23"` (problem 2: without the guard the smoke sensor turns on, with it the state stays, and `"1"`/`"2"` still work).
 
 ## Disclaimer
 

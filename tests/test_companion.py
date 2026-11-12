@@ -13,7 +13,7 @@ from pytest_homeassistant_custom_component.common import (
 
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from custom_components.tuya_keep.config_flow import DEFAULT_OPTIONS
@@ -184,3 +184,74 @@ async def test_age_check_runs_by_itself(hass: HomeAssistant, freezer: Any) -> No
     async_fire_time_changed(hass)
     await _settle(hass)
     assert hass.states.get(f"{src}_last").state == STATE_UNKNOWN
+
+
+def _tuya_device(hass: HomeAssistant) -> tuple[MockConfigEntry, dr.DeviceEntry, er.RegistryEntry]:
+    """A Tuya sensor on a Tuya device, both of the official integration."""
+    tuya = MockConfigEntry(domain="tuya")
+    tuya.add_to_hass(hass)
+    dev = dr.async_get(hass).async_get_or_create(
+        config_entry_id=tuya.entry_id,
+        identifiers={("tuya", "abc123")},
+        name="Living room sensor",
+    )
+    src = er.async_get(hass).async_get_or_create(
+        "sensor",
+        "tuya",
+        "uid_lr",
+        suggested_object_id="lr_t",
+        unit_of_measurement="°C",
+        capabilities={"state_class": "measurement"},
+        original_device_class="temperature",
+        original_name="Temperature",
+        device_id=dev.id,
+        config_entry=tuya,
+    )
+    return tuya, dev, src
+
+
+async def test_companion_on_the_tuya_device(hass: HomeAssistant) -> None:
+    """Linked to the Tuya sensor's own device and named after it; no device of its own."""
+    _tuya, dev, src = _tuya_device(hass)
+    hass.states.async_set(src.entity_id, "22.0", UNIT)
+    entry = await _setup(hass)
+
+    comp = er.async_get(hass).async_get(f"{src.entity_id}_last")
+    assert comp.device_id == dev.id
+    state = hass.states.get(comp.entity_id)
+    assert state.attributes["friendly_name"] == "Living room sensor Temperature last value"
+    own = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    assert own  # its service device
+    assert all((DOMAIN, entry.entry_id) in d.identifiers for d in own)
+
+
+async def test_copies_made_by_1_4_0_are_removed(hass: HomeAssistant) -> None:
+    """1.4.0 made a copy of each Tuya device, owned by Tuya Keep: it goes at start."""
+    _tuya, dev, src = _tuya_device(hass)
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    entry = MockConfigEntry(domain=DOMAIN, options={**DEFAULT_OPTIONS})
+    entry.add_to_hass(hass)
+    # (what 1.4.0 left: a device of Tuya Keep's with the Tuya device's identifiers, the
+    # companion on it)
+    copy = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("tuya", "abc123")}
+    )
+    assert copy.id != dev.id  # identifiers are unique per config entry
+    ent_reg.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"kept_{src.id}",
+        suggested_object_id="lr_t_last",
+        device_id=copy.id,
+        config_entry=entry,
+    )
+    hass.states.async_set(src.entity_id, "22.0", UNIT)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await _settle(hass)
+
+    assert dev_reg.async_get(copy.id) is None
+    assert dev_reg.async_get(dev.id) is not None  # the Tuya device itself stays
+    comp = ent_reg.async_get(f"{src.entity_id}_last")
+    assert comp.device_id == dev.id
+    assert hass.states.get(comp.entity_id).state == "22.0"

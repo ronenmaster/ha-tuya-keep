@@ -205,7 +205,7 @@ async def async_setup_entry(
     )
     if not data.keeper.write_back:
         # (the default: a "last value" companion next to each Tuya sensor)
-        companions = Companions(hass, data.keeper, async_add_entities)
+        companions = Companions(hass, data.keeper, async_add_entities, entry.entry_id)
         companions.start()
         entry.async_on_unload(companions.stop)
 
