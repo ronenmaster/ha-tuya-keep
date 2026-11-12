@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Fix for false smoke alarms: a Tuya report value that is neither in the data point's own mapping nor in its range is ignored (the Tuya SDK's enum conversion turned it into the first value of the range, "alarm" for smoke detectors). Real values pass untouched. New option *Ignore unknown values (false alarms)*, on by default; new sensor *Unknown values ignored* with the last ones.
+
 ## 1.2.0
 
 - New sensor *Silent sensors*: watched sensors with no new value for longer than *Silent after* (new option, default 6 h), usually an empty battery or a device out of range.

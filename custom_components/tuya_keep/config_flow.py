@@ -40,10 +40,12 @@ from .const import (
     CONF_CLOUD_ACCESS_SECRET,
     CONF_CLOUD_ENDPOINT,
     CONF_EXCLUDE,
+    CONF_GUARD,
     CONF_MAX_AGE_HOURS,
     CONF_NON_NUMERIC,
     CONF_PLATFORMS,
     CONF_SILENT_HOURS,
+    DEFAULT_GUARD,
     DEFAULT_MAX_AGE_HOURS,
     DEFAULT_NON_NUMERIC,
     DEFAULT_PLATFORMS,
@@ -59,6 +61,7 @@ DEFAULT_OPTIONS: dict[str, Any] = {
     CONF_PLATFORMS: list(DEFAULT_PLATFORMS),
     CONF_EXCLUDE: [],
     CONF_SILENT_HOURS: DEFAULT_SILENT_HOURS,
+    CONF_GUARD: DEFAULT_GUARD,
     CONF_CLOUD: {
         CONF_CLOUD_ENDPOINT: CLOUD_NONE,
         CONF_CLOUD_ACCESS_ID: "",
@@ -112,6 +115,7 @@ class TuyaKeepOptionsFlow(OptionsFlow):
                 or list(DEFAULT_PLATFORMS),
                 CONF_EXCLUDE: list(user_input.get(CONF_EXCLUDE) or []),
                 CONF_SILENT_HOURS: int(user_input.get(CONF_SILENT_HOURS) or 0),
+                CONF_GUARD: bool(user_input.get(CONF_GUARD, DEFAULT_GUARD)),
                 CONF_CLOUD: {
                     CONF_CLOUD_ENDPOINT: cloud_in.get(CONF_CLOUD_ENDPOINT)
                     or CLOUD_NONE,
@@ -184,6 +188,7 @@ class TuyaKeepOptionsFlow(OptionsFlow):
                 vol.Optional(CONF_EXCLUDE): EntitySelector(
                     EntitySelectorConfig(domain="sensor", multiple=True)
                 ),
+                vol.Required(CONF_GUARD): BooleanSelector(),
                 vol.Required(CONF_SILENT_HOURS): NumberSelector(
                     NumberSelectorConfig(
                         min=0,

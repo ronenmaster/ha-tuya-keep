@@ -89,6 +89,10 @@ def _last_restore(_hass: HomeAssistant, data: TuyaKeepData) -> datetime | None:
     return dt_util.parse_datetime(value) if value else None
 
 
+def _ignored_attrs(_hass: HomeAssistant, data: TuyaKeepData) -> dict[str, Any]:
+    return {"recent": list(data.guard.recent) if data.guard else []}
+
+
 def _cloud_status(_hass: HomeAssistant, data: TuyaKeepData) -> str:
     stats = data.sync.stats if data.sync else {}
     if stats.get("last_error"):
@@ -103,6 +107,7 @@ class KeepSensorDescription(SensorEntityDescription):
     value_fn: Callable[[HomeAssistant, TuyaKeepData], StateType | datetime]
     attrs_fn: Callable[[HomeAssistant, TuyaKeepData], dict[str, Any]] | None = None
     cloud: bool = False
+    guard: bool = False
 
 
 SENSORS: tuple[KeepSensorDescription, ...] = (
@@ -147,6 +152,14 @@ SENSORS: tuple[KeepSensorDescription, ...] = (
         attrs_fn=_came_up_attrs,
     ),
     KeepSensorDescription(
+        key="ignored",
+        translation_key="ignored",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        value_fn=lambda _h, d: d.guard.ignored if d.guard else 0,
+        attrs_fn=_ignored_attrs,
+        guard=True,
+    ),
+    KeepSensorDescription(
         key="cloud_filled",
         translation_key="cloud_filled",
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -186,7 +199,8 @@ async def async_setup_entry(
     async_add_entities(
         KeepSensor(data, description, device)
         for description in SENSORS
-        if not description.cloud or data.sync is not None
+        if (not description.cloud or data.sync is not None)
+        and (not description.guard or data.guard is not None)
     )
 
 
@@ -197,7 +211,7 @@ class KeepSensor(SensorEntity):
     _attr_should_poll = False
     # Long lists: shown on the entity, kept out of the recorder.
     _unrecorded_attributes = frozenset(
-        {"sensors", "entity_ids", "last_seen", "start", "silent_after_hours"}
+        {"sensors", "entity_ids", "last_seen", "start", "silent_after_hours", "recent"}
     )
     entity_description: KeepSensorDescription
 

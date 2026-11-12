@@ -79,6 +79,12 @@ Two layers. The first one always works and needs nothing. The second one is opti
 - Only **number readings** (temperature, humidity, battery, power...) are taken from the cloud. Alarm and on/off states (smoke, water leak, door, motion) are never filled: an old "alarm" kept in the cloud would become a false alarm.
 - If anything fails (no internet, wrong keys, an account that is not linked, a Tuya change), nothing breaks: layer 1 stays in charge.
 
+## Also fixed: false smoke alarms (unknown values)
+
+Some Tuya smoke detectors (seen on a Wi-Fi "Smoke alarm") wake up every few hours and send a routine report in which the smoke data point carries a value their own definition does not list - for example `"23"`, where the definition knows only `"1"`/`"alarm"` and `"2"`/`"normal"`. The Tuya SDK used by the official integration turns any value it cannot map into the **first value of the list**, which for these detectors is `"alarm"`. Home Assistant then shows **smoke detected**, and it stays, because the detector never sends "normal" (for it there was no alarm). The Tuya app shows nothing.
+
+Tuya Keep sits in front of the SDK's report handler and **ignores a value that is neither in the data point's own mapping nor in its range**; the state stays as it was. Real values (`"1"`, `"alarm"`, `"2"`, `"normal"` ...) pass untouched, so a real alarm is never hidden. It works for every Tuya device with such a data point, not only smoke detectors. The sensor *Unknown values ignored* counts them and lists the last ones (device, data point, value). Option: *Ignore unknown values (false alarms)*, on by default.
+
 ## Install
 
 ### HACS (recommended)

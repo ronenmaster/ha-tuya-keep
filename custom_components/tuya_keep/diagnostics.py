@@ -45,6 +45,7 @@ async def async_get_config_entry_diagnostics(
         "stored_values": data.keeper.stored_count,
         "silent_now": len(data.keeper.silent()),
         "came_up_unknown_last_start": len(data.keeper.came_up_unknown),
+        "unknown_values_ignored": data.guard.ignored if data.guard else None,
         "restore": dict(data.keeper.stats),
         "cloud": dict(data.sync.stats) if data.sync is not None else None,
     }

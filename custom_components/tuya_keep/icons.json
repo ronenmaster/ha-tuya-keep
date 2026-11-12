@@ -28,6 +28,9 @@
       },
       "came_up_unknown": {
         "default": "mdi:help-circle-outline"
+      },
+      "ignored": {
+        "default": "mdi:shield-check-outline"
       }
     }
   }

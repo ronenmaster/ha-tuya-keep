@@ -2,18 +2,21 @@
 
 A temporary companion of the official Tuya integration until the "unknown
 after restart" problem is fixed there (home-assistant/core#178105). It does
-not replace or change the official integration's code.
+not replace or change the official integration's code; its unknown value
+guard (guard.py) sits in front of the Tuya SDK's report handler at run time.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
     CLOUD_ENDPOINTS,
@@ -22,7 +25,11 @@ from .const import (
     CONF_CLOUD_ACCESS_ID,
     CONF_CLOUD_ACCESS_SECRET,
     CONF_CLOUD_ENDPOINT,
+    CONF_GUARD,
+    DEFAULT_GUARD,
+    GUARD_CHECK_EVERY,
 )
+from .guard import UnknownValueGuard
 from .keeper import Keeper
 from .shadow import ShadowSync, TuyaOpenApi
 
@@ -35,6 +42,7 @@ class TuyaKeepData:
 
     keeper: Keeper
     sync: ShadowSync | None
+    guard: UnknownValueGuard | None = None
 
 
 type TuyaKeepConfigEntry = ConfigEntry[TuyaKeepData]
@@ -60,8 +68,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuyaKeepConfigEntry) -> 
         api = TuyaOpenApi(async_get_clientsession(hass), *cloud)
         sync = ShadowSync(hass, api)
         sync.on_update = keeper.notify
-        keeper.on_unknown = sync.trigger
-    entry.runtime_data = TuyaKeepData(keeper, sync)
+        keeper.unknown_hooks.append(sync.trigger)
+    guard: UnknownValueGuard | None = None
+    if options.get(CONF_GUARD, DEFAULT_GUARD):
+        guard = UnknownValueGuard(hass, keeper.notify)
+        # (a reload of Tuya makes a new manager: wrapped at once - its sensors
+        # turn unknown - and checked every half minute as well)
+        keeper.unknown_hooks.append(guard.check)
+        entry.async_on_unload(
+            async_track_time_interval(
+                hass, guard.check, timedelta(seconds=GUARD_CHECK_EVERY)
+            )
+        )
+        entry.async_on_unload(guard.stop)
+    entry.runtime_data = TuyaKeepData(keeper, sync, guard)
+    if guard is not None:
+        guard.check()
     await keeper.async_start()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if sync is not None:

@@ -19,14 +19,16 @@
           "include_non_numeric": "Also keep text values",
           "platforms": "Integrations to watch",
           "exclude_entities": "Sensors to leave alone",
-          "silent_hours": "Silent after"
+          "silent_hours": "Silent after",
+          "ignore_unknown_values": "Ignore unknown values (false alarms)"
         },
         "data_description": {
           "max_age_hours": "A value older than this is not put back; the sensor stays \"Unknown\" until the device reports. 0 means no limit.",
           "include_non_numeric": "Off: only numbers (temperature, humidity, battery, power). On: also text states such as \"low\" or \"charging\".",
           "platforms": "Sensors of these integrations are watched. \"tuya\" is the official Tuya integration.",
           "exclude_entities": "These sensors are never restored.",
-          "silent_hours": "A watched sensor with no new value for this long is listed as silent (often an empty battery or a device out of range). 0 turns it off."
+          "silent_hours": "A watched sensor with no new value for this long is listed as silent (often an empty battery or a device out of range). 0 turns it off.",
+          "ignore_unknown_values": "Some Tuya devices report a value their own definition does not list (a smoke detector's check-in, for example). Without this, the Tuya integration shows such a value as the first one of the list - for smoke detectors \"alarm\". On: the value is ignored and the state stays as it was. Real values are never touched."
         },
         "sections": {
           "cloud": {
@@ -96,6 +98,9 @@
           "error": "Error",
           "waiting": "Waiting"
         }
+      },
+      "ignored": {
+        "name": "Unknown values ignored"
       }
     }
   }

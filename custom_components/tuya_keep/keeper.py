@@ -94,7 +94,8 @@ class Keeper:
         self._kept: dict[str, float] = {}
         self._listeners: list[Callable[[], None]] = []
         self._notify_pending = False
-        self.on_unknown: Callable[[str], None] | None = None
+        # told when a watched sensor turns unknown (a start or a reload of Tuya)
+        self.unknown_hooks: list[Callable[[str], None]] = []
         self.stats: dict[str, Any] = {
             "restored": 0,
             "skipped_too_old": 0,
@@ -355,8 +356,8 @@ class Keeper:
 
     @callback
     def _unknown(self, entity_id: str) -> None:
-        if self.on_unknown is not None:
-            self.on_unknown(entity_id)
+        for hook in list(self.unknown_hooks):
+            hook(entity_id)
         if entity_id in self._pending:
             return
         rec = self._values.get(entity_id)
