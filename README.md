@@ -1,16 +1,30 @@
-<img src="custom_components/tuya_keep/brand/icon@2x.png" alt="" width="112" align="right">
+<p align="center">
+  <img src="custom_components/tuya_keep/brand/icon@2x.png" alt="Tuya Keep" width="128">
+</p>
 
-# Tuya Keep
+<h1 align="center">Tuya Keep</h1>
 
-**Temporary fixes for the official Tuya integration of Home Assistant:**
+<h3 align="center">Your Tuya sensors show their last value right after a restart,<br>and false smoke alarms stop.</h3>
 
-- **No more "Unknown" after a restart.** Tuya sensors keep their last value instead of showing "Unknown" for up to an hour.
-- **No more false smoke alarms.** A value a Tuya device does not define (sent by some smoke detectors at their routine check-in) no longer turns into "smoke detected".
-- **See what is going on.** Live sensors show what is kept, which devices went silent (often an empty battery), and what was ignored.
+<p align="center">
+  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS Custom"></a>
+  <a href="https://github.com/ronenmaster/ha-tuya-keep/releases"><img src="https://img.shields.io/github/v/release/ronenmaster/ha-tuya-keep" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT"></a>
+</p>
 
-Tuya Keep works next to the official integration. It does not replace it and does not change its files. When Home Assistant fixes these problems itself, you simply remove Tuya Keep.
+<p align="center"><a href="README.he.md">עברית</a></p>
 
-[עברית](README.he.md)
+---
+
+## What you get
+
+| | Without Tuya Keep | With Tuya Keep |
+|---|---|---|
+| **After a restart** | Tuya sensors show **Unknown** for up to an hour | The **last value comes back at once**, marked as kept until the device reports |
+| **Smoke detectors** | **"Smoke detected"** every few hours, with no smoke, and it stays | **No false alarms** from unknown values. **Real alarms are never touched** |
+| **Dead batteries** | A device that stopped reporting goes unnoticed | It is **listed as silent**, with the time it was last seen |
+
+Works for every current and future Tuya device, with nothing to set per device. Tuya Keep works next to the official Tuya integration: it does not replace it and does not change its files. When Home Assistant fixes these problems itself, you simply remove it.
 
 ---
 
