@@ -1,0 +1,28 @@
+{
+  "entity": {
+    "sensor": {
+      "kept_now": {
+        "default": "mdi:history"
+      },
+      "watched": {
+        "default": "mdi:eye-outline"
+      },
+      "restored": {
+        "default": "mdi:backup-restore"
+      },
+      "last_restore": {
+        "default": "mdi:clock-check-outline"
+      },
+      "cloud_filled": {
+        "default": "mdi:cloud-download-outline"
+      },
+      "cloud_status": {
+        "default": "mdi:cloud-check-outline",
+        "state": {
+          "error": "mdi:cloud-alert-outline",
+          "waiting": "mdi:cloud-clock-outline"
+        }
+      }
+    }
+  }
+}

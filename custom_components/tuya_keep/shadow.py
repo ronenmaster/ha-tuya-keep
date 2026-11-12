@@ -217,6 +217,7 @@ class ShadowSync:
         self._task: asyncio.Task | None = None
         self._again = False
         self._stopped = False
+        self.on_update: Callable[[], None] | None = None
         self.stats: dict[str, Any] = {
             "devices_filled": 0,
             "values_filled": 0,
@@ -270,6 +271,8 @@ class ShadowSync:
         except Exception:  # noqa: BLE001 - layer 1 keeps working
             LOGGER.exception("Tuya cloud sync failed")
         self.stats["last_run"] = time.time()
+        if self.on_update is not None:
+            self.on_update()
 
     def _managers(self) -> list[tuple[tuple[str, int], Any]]:
         found = []

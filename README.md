@@ -165,6 +165,18 @@ You can use the attributes in templates, for example:
 {% endif %}
 ```
 
+**On the integration's page** (Settings → Devices & services → Tuya Keep → the *Tuya Keep* service) live sensors show what it handles:
+
+| Sensor | Shows |
+|---|---|
+| Showing a kept value now | How many sensors show a kept value right now. Its attributes list them by name, with the time each value was really seen. |
+| Watched sensors | How many sensors are watched; the attributes list them. |
+| Values restored since start | How many times a value was put back since Home Assistant started. |
+| Last restore | When a value was last put back. |
+| Values filled from the cloud, Cloud status | Only with the cloud layer: how many real values came from the cloud, and whether the last read worked (the attribute `last_error` says why not). |
+
+The long lists are kept out of the recorder, so they do not grow the database.
+
 **Diagnostics:** Tuya Keep → three dots → *Download diagnostics* shows counts only (how many sensors are watched, how many values were restored, the cloud layer's results). It never includes keys or entity names.
 
 ## How it works (details)

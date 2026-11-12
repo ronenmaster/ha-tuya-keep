@@ -63,5 +63,32 @@
         "sg": "Singapore"
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "kept_now": {
+        "name": "Showing a kept value now"
+      },
+      "watched": {
+        "name": "Watched sensors"
+      },
+      "restored": {
+        "name": "Values restored since start"
+      },
+      "last_restore": {
+        "name": "Last restore"
+      },
+      "cloud_filled": {
+        "name": "Values filled from the cloud"
+      },
+      "cloud_status": {
+        "name": "Cloud status",
+        "state": {
+          "ok": "OK",
+          "error": "Error",
+          "waiting": "Waiting"
+        }
+      }
+    }
   }
 }

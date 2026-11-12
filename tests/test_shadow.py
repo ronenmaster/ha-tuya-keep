@@ -171,6 +171,8 @@ async def test_sync_fills_only_devices_with_empty_status(
     assert headers["access_token"] == "tok"
     assert len(headers["sign"]) == 64 and headers["sign"].isupper()
     assert entry.runtime_data.sync.stats["values_filled"] == 2
+    assert hass.states.get("sensor.tuya_keep_cloud_filled").state == "2"
+    assert hass.states.get("sensor.tuya_keep_cloud_status").state == "ok"
 
 
 async def test_permanent_error_is_not_retried(
@@ -195,6 +197,7 @@ async def test_permanent_error_is_not_retried(
     stats = entry.runtime_data.sync.stats
     assert stats["errors"] == 1
     assert "permission deny" in stats["last_error"]
+    assert hass.states.get("sensor.tuya_keep_cloud_status").state == "error"
 
 
 async def test_token_is_renewed_when_tuya_says_so(

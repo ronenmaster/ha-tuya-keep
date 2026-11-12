@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -24,6 +25,8 @@ from .const import (
 )
 from .keeper import Keeper
 from .shadow import ShadowSync, TuyaOpenApi
+
+PLATFORMS = [Platform.SENSOR]
 
 
 @dataclass
@@ -56,9 +59,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuyaKeepConfigEntry) -> 
     if (cloud := cloud_settings(options)) is not None:
         api = TuyaOpenApi(async_get_clientsession(hass), *cloud)
         sync = ShadowSync(hass, api)
+        sync.on_update = keeper.notify
         keeper.on_unknown = sync.trigger
     entry.runtime_data = TuyaKeepData(keeper, sync)
     await keeper.async_start()
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     if sync is not None:
         sync.trigger()
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
@@ -73,6 +78,8 @@ async def _async_options_updated(
 
 async def async_unload_entry(hass: HomeAssistant, entry: TuyaKeepConfigEntry) -> bool:
     """Stop listening; restored values stay until the devices report."""
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
     data = entry.runtime_data
     if data.sync is not None:
         data.sync.stop()

@@ -63,5 +63,32 @@
         "sg": "סינגפור"
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "kept_now": {
+        "name": "מציגים ערך שמור עכשיו"
+      },
+      "watched": {
+        "name": "חיישנים במעקב"
+      },
+      "restored": {
+        "name": "ערכים שהוחזרו מאז ההפעלה"
+      },
+      "last_restore": {
+        "name": "החזרה אחרונה"
+      },
+      "cloud_filled": {
+        "name": "ערכים שמולאו מהענן"
+      },
+      "cloud_status": {
+        "name": "מצב הענן",
+        "state": {
+          "ok": "תקין",
+          "error": "שגיאה",
+          "waiting": "ממתין"
+        }
+      }
+    }
   }
 }

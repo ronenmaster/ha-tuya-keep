@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- Live sensors on the integration's page (a *Tuya Keep* service device): sensors showing a kept value now (with their names and when each value was really seen), watched sensors, values restored since start, last restore; with the cloud layer also values filled from the cloud and the cloud status.
+
 ## 1.0.2
 
 - Cloud layer: only number readings (status type Integer) are filled from the device shadow. Alarm and on/off states (smoke, water leak, door, motion) are never filled, so an old "alarm" kept in the cloud cannot become a false alarm after a restart.

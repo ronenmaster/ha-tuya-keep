@@ -38,6 +38,7 @@ from .const import (
     DEFAULT_MAX_AGE_HOURS,
     DEFAULT_NON_NUMERIC,
     DEFAULT_PLATFORMS,
+    DOMAIN,
     LOGGER,
     RECORDER_SEED_DAYS,
     RECORDER_SEED_LIMIT,
@@ -76,6 +77,10 @@ class Keeper:
         self._watched: dict[str, bool] = {}
         self._pending: set[str] = set()
         self._unsubs: list[CALLBACK_TYPE] = []
+        # entity_id -> when its kept value was really seen (unix seconds),
+        # for the sensors that show a kept value right now
+        self._kept: dict[str, float] = {}
+        self._listeners: list[Callable[[], None]] = []
         self.on_unknown: Callable[[str], None] | None = None
         self.stats: dict[str, Any] = {
             "restored": 0,
@@ -138,12 +143,45 @@ class Keeper:
     @property
     def watched_count(self) -> int:
         """Return how many sensors are watched now."""
-        return sum(1 for ok in self._watched.values() if ok)
+        return len(self.watched_entities())
 
     @property
     def stored_count(self) -> int:
         """Return how many last values are kept."""
         return len(self._values)
+
+    @property
+    def kept(self) -> dict[str, float]:
+        """Sensors showing a kept value now -> when it was really seen."""
+        return dict(self._kept)
+
+    @callback
+    def watched_entities(self) -> list[str]:
+        """Every sensor in the registry that is watched (live list)."""
+        registry = er.async_get(self.hass)
+        return sorted(
+            entry.entity_id
+            for entry in registry.entities.values()
+            if entry.domain == "sensor" and self._is_watched(entry.entity_id)
+        )
+
+    @callback
+    def add_listener(self, listener: Callable[[], None]) -> CALLBACK_TYPE:
+        """Call listener when what is kept or watched changes."""
+        self._listeners.append(listener)
+
+        @callback
+        def _remove() -> None:
+            if listener in self._listeners:
+                self._listeners.remove(listener)
+
+        return _remove
+
+    @callback
+    def notify(self) -> None:
+        """Tell the listeners (the integration's own sensors)."""
+        for listener in list(self._listeners):
+            listener()
 
     # --------------------------------------------------------------- watching
 
@@ -158,6 +196,7 @@ class Keeper:
         ok = (
             entry is not None
             and entry.platform in self._platforms
+            and entry.platform != DOMAIN  # never our own sensors
             and entity_id not in self._exclude
         )
         self._watched[entity_id] = ok
@@ -181,11 +220,22 @@ class Keeper:
         elif old_id and entity_id and old_id in self._values:
             self._values[entity_id] = self._values.pop(old_id)
             self._save_later()
+        if old_id:
+            self._kept.pop(old_id, None)
+        if data.get("action") == "remove" and entity_id:
+            self._kept.pop(entity_id, None)
+        self.notify()
 
     @callback
     def _on_changed(self, event: Event) -> None:
         new: State | None = event.data.get("new_state")
-        if new is None or new.attributes.get(ATTR_RESTORED):
+        if new is not None and new.attributes.get(ATTR_RESTORED):
+            return  # our own write
+        # Anything else (a real value, unknown, unavailable, removed) means
+        # the sensor no longer shows its kept value.
+        if self._kept.pop(event.data["entity_id"], None) is not None:
+            self.notify()
+        if new is None:
             return
         if new.state == STATE_UNKNOWN:
             self._unknown(new.entity_id)
@@ -266,8 +316,10 @@ class Keeper:
         attrs[ATTR_RESTORED] = True
         attrs[ATTR_LAST_SEEN] = dt_util.utc_from_timestamp(rec["t"]).isoformat()
         self.hass.states.async_set(entity_id, rec["s"], attrs)
+        self._kept[entity_id] = float(rec["t"])
         self.stats["restored"] += 1
         self.stats["last_restore"] = dt_util.utcnow().isoformat()
+        self.notify()
         LOGGER.debug("Restored %s to its last value", entity_id)
 
     async def _from_recorder(self, entity_id: str) -> dict[str, Any] | None:
