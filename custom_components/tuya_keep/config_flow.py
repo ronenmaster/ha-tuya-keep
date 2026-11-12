@@ -42,6 +42,7 @@ from .const import (
     CONF_EXCLUDE,
     CONF_GUARD,
     CONF_MAX_AGE_HOURS,
+    CONF_MODE,
     CONF_NON_NUMERIC,
     CONF_PLATFORMS,
     CONF_SILENT_HOURS,
@@ -52,10 +53,13 @@ from .const import (
     DEFAULT_SILENT_HOURS,
     DOMAIN,
     LOGGER,
+    MODE_COMPANION,
+    MODE_IN_PLACE,
 )
 from .shadow import TuyaCloudError, TuyaOpenApi
 
 DEFAULT_OPTIONS: dict[str, Any] = {
+    CONF_MODE: MODE_COMPANION,
     CONF_MAX_AGE_HOURS: DEFAULT_MAX_AGE_HOURS,
     CONF_NON_NUMERIC: DEFAULT_NON_NUMERIC,
     CONF_PLATFORMS: list(DEFAULT_PLATFORMS),
@@ -101,10 +105,13 @@ class TuyaKeepOptionsFlow(OptionsFlow):
         """One form; the cloud part is folded away."""
         errors: dict[str, str] = {}
         current = {**DEFAULT_OPTIONS, **self.config_entry.options}
+        if CONF_MODE not in self.config_entry.options:
+            current[CONF_MODE] = MODE_IN_PLACE  # made before the choice existed
 
         if user_input is not None:
             cloud_in = user_input.get(CONF_CLOUD) or {}
             new_options = {
+                CONF_MODE: user_input.get(CONF_MODE) or current[CONF_MODE],
                 CONF_MAX_AGE_HOURS: int(user_input.get(CONF_MAX_AGE_HOURS) or 0),
                 CONF_NON_NUMERIC: bool(user_input.get(CONF_NON_NUMERIC)),
                 CONF_PLATFORMS: [
@@ -167,6 +174,13 @@ class TuyaKeepOptionsFlow(OptionsFlow):
         )
         return vol.Schema(
             {
+                vol.Required(CONF_MODE): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[MODE_COMPANION, MODE_IN_PLACE],
+                        translation_key=CONF_MODE,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
                 vol.Required(CONF_MAX_AGE_HOURS): NumberSelector(
                     NumberSelectorConfig(
                         min=0,

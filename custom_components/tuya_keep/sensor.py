@@ -21,6 +21,7 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from . import TuyaKeepConfigEntry, TuyaKeepData
+from .companion import Companions
 from .const import DOMAIN
 
 
@@ -202,6 +203,11 @@ async def async_setup_entry(
         if (not description.cloud or data.sync is not None)
         and (not description.guard or data.guard is not None)
     )
+    if not data.keeper.write_back:
+        # (the default: a "last value" companion next to each Tuya sensor)
+        companions = Companions(hass, data.keeper, async_add_entities)
+        companions.start()
+        entry.async_on_unload(companions.stop)
 
 
 class KeepSensor(SensorEntity):

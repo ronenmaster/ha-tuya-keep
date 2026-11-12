@@ -4,7 +4,7 @@
 
 <h1 align="center">Tuya Keep</h1>
 
-<h3 align="center">Your Tuya sensors show their last value right after a restart,<br>and false smoke alarms stop.</h3>
+<h3 align="center">The last value of every Tuya sensor, right after a restart,<br>and no more false smoke alarms.</h3>
 
 <p align="center">
   <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS Custom"></a>
@@ -20,7 +20,7 @@
 
 | | Without Tuya Keep | With Tuya Keep |
 |---|---|---|
-| **After a restart** | Tuya sensors show **Unknown** for up to an hour | The **last value comes back at once**, marked as kept until the device reports |
+| **After a restart** | Tuya sensors show **Unknown** for up to an hour | Each Tuya sensor has a **"last value" companion** that shows the last value at once, marked as not live. **The Tuya sensors are not touched** |
 | **Smoke detectors** | **"Smoke detected"** every few hours, with no smoke, and it stays | **No false alarms** from unknown values. **Real alarms are never touched** |
 | **Dead batteries** | A device that stopped reporting goes unnoticed | It is **listed as silent**, with the time it was last seen |
 
@@ -70,8 +70,8 @@ Some Tuya smoke detectors (seen on a Wi-Fi "Smoke alarm") show **smoke detected*
 ### 1. Keeps the last value (no account, no internet)
 
 - It watches every sensor of the official Tuya integration and remembers its **last real value**, with the time it was last seen.
-- When such a sensor turns **Unknown** (a restart, a reload, an online/offline event with an empty status), it **puts the last value back** at once, marked with two attributes so you always know it is a kept value and how old it is.
-- The device's next real report replaces it, as usual.
+- **Companion sensors (the default):** next to each Tuya number sensor it adds its own sensor, *"&lt;name&gt; last value"*, on the same device. While the Tuya sensor reports, the companion shows the same value (`live: true`). When the Tuya sensor turns **Unknown**, the companion keeps showing the last value, marked as not live (`live: false`, `last_seen`, a history icon), and after the age limit it turns Unknown too. It restores itself across restarts the standard Home Assistant way. **The Tuya entities themselves are never written to**, as the Home Assistant Tuya maintainers advise. Point a dashboard card or an automation at the companion when you want the last known value, and at the Tuya sensor when you want only live readings.
+- **In place (optional, the first versions' way):** the last value is written back into the Tuya sensor itself, marked with two attributes. Entries made before version 1.4.0 keep this mode until you change it.
 - It works for **every current and future Tuya device**, with nothing to set per device. On the first start it takes the last values from the Home Assistant **recorder history**, so it helps from the very first restart.
 
 ### 2. Ignores unknown values (the false alarms fix)
@@ -79,6 +79,7 @@ Some Tuya smoke detectors (seen on a Wi-Fi "Smoke alarm") show **smoke detected*
 - It sits in front of the Tuya SDK's report handler and **ignores a value that is neither in the data point's own mapping nor in its range**. The state simply stays as it was.
 - Real values (`"1"`, `"alarm"`, `"2"`, `"normal"` and so on) pass untouched, so **a real alarm is never hidden**.
 - It works for every Tuya device with such a data point, not only smoke detectors. On by default.
+- The proper fix for a given product is a quirk in [tuya-device-handlers](https://github.com/home-assistant-libs/tuya-device-handlers) ([adding missing ENUM values](https://github.com/home-assistant-libs/tuya-device-handlers/blob/main/docs/adding-missing-enum-values.md)), and the SDK's fallback belongs in [tuya-device-sharing-sdk](https://github.com/tuya/tuya-device-sharing-sdk). This guard covers every product until then.
 
 ### 3. Shows what is going on
 
@@ -118,6 +119,7 @@ The official Tuya integration must be set up as usual. Tuya Keep only works next
 
 | Setting | Default | What it does |
 |---|---|---|
+| How to keep the last value | Companion sensors | *Companion sensors* (recommended): a "last value" sensor next to each Tuya sensor, the Tuya sensors untouched. *In the Tuya sensor itself*: the value is written back into it (the first versions' way; entries made before 1.4.0 keep it). |
 | Keep a value for at most | 24 h | A kept value older than this is not put back; the sensor stays Unknown until the device reports. 0 = no limit. |
 | Also keep text values | off | Off: only numbers (temperature, humidity, battery, power...). On: also text states such as `low` or `charging`. |
 | Integrations to watch | `tuya` | Sensors of these integrations are watched. `tuya` is the official Tuya integration. |
@@ -132,6 +134,7 @@ The official Tuya integration must be set up as usual. Tuya Keep only works next
 
 | Sensor | Shows |
 |---|---|
+| *&lt;name&gt; last value* (one per Tuya number sensor, on its device) | Companion mode: the last real value of that sensor; `live` says whether it is live right now, `last_seen` when it was really reported. |
 | Showing a kept value now | How many sensors show a kept value right now. Its attributes list them by name, with the time each value was really seen. |
 | Watched sensors | How many sensors are watched; the attributes list them. |
 | Values restored since start | How many times a value was put back since Home Assistant started. |
@@ -143,7 +146,7 @@ The official Tuya integration must be set up as usual. Tuya Keep only works next
 
 The long lists are kept out of the recorder, so they do not grow the database.
 
-**A kept value** carries these attributes (Developer tools → States):
+**In place mode only:** a kept value written into a Tuya sensor carries these attributes (Developer tools → States):
 
 ```yaml
 tuya_keep_restored: true
@@ -177,7 +180,8 @@ Tuya Keep only **reads** (one call per device that needs it, only after a restar
 
 - **Which sensors:** every `sensor` entity whose integration is in *Integrations to watch* (default `tuya`), minus *Sensors to leave alone*, checked live, so devices added later are covered at once.
 - **Remembering:** each real state (and each repeated report of the same value) updates the kept value and its time, saved in `.storage/tuya_keep.last_values` (at most once a minute, and on shutdown). Values not seen for 30 days are dropped.
-- **Restoring:** when a watched sensor becomes `unknown`, the kept value is written into Home Assistant's state machine with the sensor's own attributes plus the two markers. The "unknown" state reaches every other listener first, so nothing gets the two out of order. If a sensor has no kept value yet, the newest real value in the recorder history (last 10 days, within the age limit) is used.
+- **Companion sensors:** each is a `RestoreSensor` of this integration, linked to the Tuya sensor's device, following the Tuya sensor's state changes and reports; numbers only unless text values are kept. New Tuya sensors get one at once, removed ones lose it.
+- **In place restoring:** when a watched sensor becomes `unknown`, the kept value is written into Home Assistant's state machine with the sensor's own attributes plus the two markers. The "unknown" state reaches every other listener first, so nothing gets the two out of order. If a sensor has no kept value yet, the newest real value in the recorder history (last 10 days, within the age limit) is used.
 - **Unknown values:** each loaded Tuya manager's report handler is wrapped at run time (and wrapped again after a reload of Tuya; put back on unload). For devices with a local data point strategy, a report item whose `enum` value is in neither the data point's `enumMappingMap` nor its range is dropped before the SDK converts it. A report with nothing left is not passed on.
 - **Silent sensors:** a watched sensor whose last real value is older than *Silent after*, checked every 5 minutes.
 - **Cloud part:** `GET /v2.0/cloud/thing/{device_id}/shadow/properties` of Tuya's OpenAPI, signed with your project keys, only for devices missing number values, and only number (Integer) values the device has none of. The values go through the Tuya SDK's own report handler. Network errors are retried up to 3 times; a refusal is not.
@@ -185,6 +189,7 @@ Tuya Keep only **reads** (one call per device that needs it, only after a restar
 
 ## Limits
 
+- Companion mode: a dashboard or automation that should keep working through a restart has to point at the *last value* companion, not at the Tuya sensor.
 - A kept value is the **last known** value, not a live one. That's why it is marked and has an age limit.
 - Only `sensor` entities are restored. Binary sensors (door, motion, smoke...) are not, on purpose: an old "clear" or "detected" could be dangerous.
 - The unknown value guard covers devices that report by data point id (most Wi-Fi devices); a value that really meant something but is not in the device's own definition is ignored too. A false alarm that was already showing before you installed Tuya Keep clears at the next restart.
@@ -203,6 +208,10 @@ Tuya Keep only **reads** (one call per device that needs it, only after a restar
 - **Problem 2:** it is in the Tuya SDK's enum conversion; until that changes, removing Tuya Keep brings the false alarms back (or turn off only the other parts in its settings).
 
 To remove: **Settings → Devices & services → Tuya Keep → three dots → Delete** (its stored values file goes with it), remove it from HACS, restart Home Assistant. Nothing in the official integration needs to be undone.
+
+## Reporting a problem to Home Assistant
+
+Before you report a Tuya problem to Home Assistant, **reproduce it with Tuya Keep disabled** (Settings → Devices & services → Tuya Keep → three dots → Disable, then restart), as the maintainers ask: Tuya Keep changes how Tuya values arrive. Problems with Tuya Keep itself go to [this repository's issues](https://github.com/ronenmaster/ha-tuya-keep/issues), not to Home Assistant's.
 
 ## Troubleshooting
 
@@ -223,7 +232,7 @@ pip install pytest-homeassistant-custom-component tuya-device-sharing-sdk ha-ffm
 pytest
 ```
 
-35 tests. They include end to end runs with the real official Tuya integration and the real Tuya SDK, with the cloud replaced by an offline stand-in: one returns an empty status (problem 1), one sends the detector's `"23"` (problem 2: without the guard the smoke sensor turns on, with it the state stays, and `"1"`/`"2"` still work).
+43 tests. They include end to end runs with the real official Tuya integration and the real Tuya SDK, with the cloud replaced by an offline stand-in: one returns an empty status (problem 1), one sends the detector's `"23"` (problem 2: without the guard the smoke sensor turns on, with it the state stays, and `"1"`/`"2"` still work).
 
 ## Disclaimer
 

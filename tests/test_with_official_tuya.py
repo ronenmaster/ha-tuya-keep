@@ -171,7 +171,9 @@ async def test_official_sensor_keeps_its_value(
         "key": STORE_KEY,
         "data": {"values": {temp: {"s": "21.5", "t": time.time() - 900}}},
     }
-    keep = MockConfigEntry(domain=DOMAIN, options=DEFAULT_OPTIONS)
+    keep = MockConfigEntry(
+        domain=DOMAIN, options={**DEFAULT_OPTIONS, "mode": "in_place"}
+    )
     keep.add_to_hass(hass)
     assert await hass.config_entries.async_setup(keep.entry_id)
     await hass.async_block_till_done()
@@ -240,3 +242,35 @@ async def test_cloud_layer_gives_the_real_values(
     assert float(temp.state) == pytest.approx(19.8)
     assert float(humidity.state) == pytest.approx(61)
     assert ATTR_RESTORED not in temp.attributes  # real values, not restored
+
+
+async def test_companion_on_the_tuya_device(
+    hass: HomeAssistant, hass_storage: dict[str, Any], offline_tuya: None
+) -> None:
+    """Default mode: the Tuya entity stays unknown, its companion (on the
+    same device) shows the kept value."""
+    from homeassistant.helpers import device_registry as dr  # noqa: PLC0415
+
+    await _setup_tuya(hass)
+    temp = _entities(hass)["temperature"]
+    hass_storage[STORE_KEY] = {
+        "version": STORE_VERSION,
+        "minor_version": 1,
+        "key": STORE_KEY,
+        "data": {"values": {temp: {"s": "21.5", "t": time.time() - 900}}},
+    }
+    keep = MockConfigEntry(domain=DOMAIN, options=DEFAULT_OPTIONS)
+    keep.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(keep.entry_id)
+    for _ in range(3):
+        await hass.async_block_till_done()
+
+    assert hass.states.get(temp).state == STATE_UNKNOWN  # untouched
+    companion = hass.states.get(f"{temp}_last")
+    assert companion is not None
+    assert float(companion.state) == pytest.approx(21.5)
+    assert companion.attributes["live"] is False
+    reg = er.async_get(hass)
+    assert reg.async_get(f"{temp}_last").device_id == reg.async_get(temp).device_id
+    device = dr.async_get(hass).async_get(reg.async_get(temp).device_id)
+    assert keep.entry_id in device.config_entries

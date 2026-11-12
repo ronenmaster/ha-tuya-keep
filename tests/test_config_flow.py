@@ -21,6 +21,7 @@ TOKEN_URL = "https://openapi.tuyaeu.com/v1.0/token?grant_type=1"
 
 def _form(cloud: dict[str, str]) -> dict:
     return {
+        "mode": "companion",
         "max_age_hours": 12,
         "include_non_numeric": False,
         "platforms": ["tuya"],

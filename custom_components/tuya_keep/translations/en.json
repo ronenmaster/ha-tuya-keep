@@ -15,6 +15,7 @@
       "init": {
         "title": "Tuya Keep settings",
         "data": {
+          "mode": "How to keep the last value",
           "max_age_hours": "Keep a value for at most",
           "include_non_numeric": "Also keep text values",
           "platforms": "Integrations to watch",
@@ -23,6 +24,7 @@
           "ignore_unknown_values": "Ignore unknown values (false alarms)"
         },
         "data_description": {
+          "mode": "Companion sensors (recommended): a \"last value\" sensor next to each Tuya sensor; the Tuya sensors are never changed. In place: the last value is written back into the Tuya sensor itself.",
           "max_age_hours": "A value older than this is not put back; the sensor stays \"Unknown\" until the device reports. 0 means no limit.",
           "include_non_numeric": "Off: only numbers (temperature, humidity, battery, power). On: also text states such as \"low\" or \"charging\".",
           "platforms": "Sensors of these integrations are watched. \"tuya\" is the official Tuya integration.",
@@ -66,6 +68,12 @@
         "in": "India",
         "sg": "Singapore"
       }
+    },
+    "mode": {
+      "options": {
+        "companion": "Companion sensors (recommended)",
+        "in_place": "In the Tuya sensor itself"
+      }
     }
   },
   "entity": {
@@ -101,6 +109,9 @@
       },
       "ignored": {
         "name": "Unknown values ignored"
+      },
+      "kept_value": {
+        "name": "{name} last value"
       }
     }
   }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+Following the Home Assistant Tuya maintainers' advice (core#178105):
+
+- New default: **companion sensors**. Next to each Tuya number sensor, a "<name> last value" sensor on the same device shows the last real value; `live` says whether it is live, `last_seen` when it was reported; it turns unknown past the age limit and restores itself across restarts. The Tuya entities are never written to.
+- The first versions' way ("in place": writing the last value back into the Tuya sensor) stays as an option; entries made before 1.4.0 keep it until changed.
+- README: how to report Tuya problems to Home Assistant (with Tuya Keep disabled), and the proper upstream fixes for unknown values (a quirk in tuya-device-handlers, the SDK fallback in tuya-device-sharing-sdk).
+
 ## 1.3.0
 
 - Fix for false smoke alarms: a Tuya report value that is neither in the data point's own mapping nor in its range is ignored (the Tuya SDK's enum conversion turned it into the first value of the range, "alarm" for smoke detectors). Real values pass untouched. New option *Ignore unknown values (false alarms)*, on by default; new sensor *Unknown values ignored* with the last ones.

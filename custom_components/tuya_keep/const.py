@@ -15,6 +15,13 @@ CONF_NON_NUMERIC: Final = "include_non_numeric"
 CONF_EXCLUDE: Final = "exclude_entities"
 CONF_SILENT_HOURS: Final = "silent_hours"
 CONF_GUARD: Final = "ignore_unknown_values"
+CONF_MODE: Final = "mode"
+# companion: a "last value" sensor next to each Tuya sensor, the Tuya entities
+# untouched (the default, as the Tuya maintainers advise); in_place: the last
+# value written back into the Tuya entity itself (the first versions' way, kept
+# for entries made before the choice existed)
+MODE_COMPANION: Final = "companion"
+MODE_IN_PLACE: Final = "in_place"
 CONF_CLOUD: Final = "cloud"
 CONF_CLOUD_ENDPOINT: Final = "endpoint"
 CONF_CLOUD_ACCESS_ID: Final = "access_id"

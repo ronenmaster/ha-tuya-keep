@@ -34,6 +34,7 @@ from .const import (
     ATTR_RESTORED,
     CONF_EXCLUDE,
     CONF_MAX_AGE_HOURS,
+    CONF_MODE,
     CONF_NON_NUMERIC,
     CONF_PLATFORMS,
     CONF_SILENT_HOURS,
@@ -43,6 +44,7 @@ from .const import (
     DEFAULT_SILENT_HOURS,
     DOMAIN,
     LOGGER,
+    MODE_IN_PLACE,
     RECORDER_SEED_DAYS,
     RECORDER_SEED_LIMIT,
     SILENT_CHECK_EVERY,
@@ -76,6 +78,8 @@ class Keeper:
         self._platforms = set(options.get(CONF_PLATFORMS) or DEFAULT_PLATFORMS)
         self._non_numeric = bool(options.get(CONF_NON_NUMERIC, DEFAULT_NON_NUMERIC))
         self._exclude = set(options.get(CONF_EXCLUDE) or [])
+        # (an entry made before the choice existed has no mode: it keeps writing back)
+        self.write_back = options.get(CONF_MODE, MODE_IN_PLACE) == MODE_IN_PLACE
         silent = float(options.get(CONF_SILENT_HOURS, DEFAULT_SILENT_HOURS) or 0)
         self.silent_hours = silent
         self._silent_after: float | None = silent * 3600 if silent > 0 else None
@@ -201,6 +205,27 @@ class Keeper:
             for eid, rec in self._values.items()
             if rec["t"] < limit and self._is_watched(eid)
         }
+
+    @property
+    def max_age(self) -> float | None:
+        """The age limit in seconds (None: no limit)."""
+        return self._max_age
+
+    @property
+    def non_numeric(self) -> bool:
+        """Text values are kept too."""
+        return self._non_numeric
+
+    @callback
+    def is_watched(self, entity_id: str) -> bool:
+        """A sensor of a watched integration, not excluded."""
+        return self._is_watched(entity_id)
+
+    @callback
+    def value_of(self, entity_id: str) -> dict[str, Any] | None:
+        """The kept value of a sensor: {"s": state, "t": last seen}."""
+        rec = self._values.get(entity_id)
+        return dict(rec) if rec else None
 
     @callback
     def watched_entities(self) -> list[str]:
@@ -397,10 +422,12 @@ class Keeper:
             self.stats["skipped_too_old"] += 1
             LOGGER.debug("Not restoring %s: the last value is too old", entity_id)
             return
-        attrs = dict(current.attributes)
-        attrs[ATTR_RESTORED] = True
-        attrs[ATTR_LAST_SEEN] = dt_util.utc_from_timestamp(rec["t"]).isoformat()
-        self.hass.states.async_set(entity_id, rec["s"], attrs)
+        if self.write_back:
+            attrs = dict(current.attributes)
+            attrs[ATTR_RESTORED] = True
+            attrs[ATTR_LAST_SEEN] = dt_util.utc_from_timestamp(rec["t"]).isoformat()
+            self.hass.states.async_set(entity_id, rec["s"], attrs)
+        # (companion mode: the Tuya entity stays unknown; its companion shows the value)
         self._kept[entity_id] = float(rec["t"])
         self.stats["restored"] += 1
         self.stats["last_restore"] = dt_util.utcnow().isoformat()
