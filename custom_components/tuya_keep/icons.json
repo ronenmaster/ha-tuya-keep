@@ -22,6 +22,12 @@
           "error": "mdi:cloud-alert-outline",
           "waiting": "mdi:cloud-clock-outline"
         }
+      },
+      "silent": {
+        "default": "mdi:sleep"
+      },
+      "came_up_unknown": {
+        "default": "mdi:help-circle-outline"
       }
     }
   }

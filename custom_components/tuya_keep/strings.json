@@ -18,13 +18,15 @@
           "max_age_hours": "Keep a value for at most",
           "include_non_numeric": "Also keep text values",
           "platforms": "Integrations to watch",
-          "exclude_entities": "Sensors to leave alone"
+          "exclude_entities": "Sensors to leave alone",
+          "silent_hours": "Silent after"
         },
         "data_description": {
           "max_age_hours": "A value older than this is not put back; the sensor stays \"Unknown\" until the device reports. 0 means no limit.",
           "include_non_numeric": "Off: only numbers (temperature, humidity, battery, power). On: also text states such as \"low\" or \"charging\".",
           "platforms": "Sensors of these integrations are watched. \"tuya\" is the official Tuya integration.",
-          "exclude_entities": "These sensors are never restored."
+          "exclude_entities": "These sensors are never restored.",
+          "silent_hours": "A watched sensor with no new value for this long is listed as silent (often an empty battery or a device out of range). 0 turns it off."
         },
         "sections": {
           "cloud": {
@@ -77,6 +79,12 @@
       },
       "last_restore": {
         "name": "Last restore"
+      },
+      "silent": {
+        "name": "Silent sensors"
+      },
+      "came_up_unknown": {
+        "name": "Came up unknown at the last start"
       },
       "cloud_filled": {
         "name": "Values filled from the cloud"

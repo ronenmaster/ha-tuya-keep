@@ -43,9 +43,11 @@ from .const import (
     CONF_MAX_AGE_HOURS,
     CONF_NON_NUMERIC,
     CONF_PLATFORMS,
+    CONF_SILENT_HOURS,
     DEFAULT_MAX_AGE_HOURS,
     DEFAULT_NON_NUMERIC,
     DEFAULT_PLATFORMS,
+    DEFAULT_SILENT_HOURS,
     DOMAIN,
     LOGGER,
 )
@@ -56,6 +58,7 @@ DEFAULT_OPTIONS: dict[str, Any] = {
     CONF_NON_NUMERIC: DEFAULT_NON_NUMERIC,
     CONF_PLATFORMS: list(DEFAULT_PLATFORMS),
     CONF_EXCLUDE: [],
+    CONF_SILENT_HOURS: DEFAULT_SILENT_HOURS,
     CONF_CLOUD: {
         CONF_CLOUD_ENDPOINT: CLOUD_NONE,
         CONF_CLOUD_ACCESS_ID: "",
@@ -108,6 +111,7 @@ class TuyaKeepOptionsFlow(OptionsFlow):
                 ]
                 or list(DEFAULT_PLATFORMS),
                 CONF_EXCLUDE: list(user_input.get(CONF_EXCLUDE) or []),
+                CONF_SILENT_HOURS: int(user_input.get(CONF_SILENT_HOURS) or 0),
                 CONF_CLOUD: {
                     CONF_CLOUD_ENDPOINT: cloud_in.get(CONF_CLOUD_ENDPOINT)
                     or CLOUD_NONE,
@@ -179,6 +183,15 @@ class TuyaKeepOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(CONF_EXCLUDE): EntitySelector(
                     EntitySelectorConfig(domain="sensor", multiple=True)
+                ),
+                vol.Required(CONF_SILENT_HOURS): NumberSelector(
+                    NumberSelectorConfig(
+                        min=0,
+                        max=168,
+                        step=1,
+                        mode=NumberSelectorMode.BOX,
+                        unit_of_measurement="h",
+                    )
                 ),
                 vol.Required(CONF_CLOUD): section(
                     vol.Schema(

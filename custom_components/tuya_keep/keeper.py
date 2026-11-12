@@ -25,6 +25,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, State, callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -35,13 +36,17 @@ from .const import (
     CONF_MAX_AGE_HOURS,
     CONF_NON_NUMERIC,
     CONF_PLATFORMS,
+    CONF_SILENT_HOURS,
     DEFAULT_MAX_AGE_HOURS,
     DEFAULT_NON_NUMERIC,
     DEFAULT_PLATFORMS,
+    DEFAULT_SILENT_HOURS,
     DOMAIN,
     LOGGER,
     RECORDER_SEED_DAYS,
     RECORDER_SEED_LIMIT,
+    SILENT_CHECK_EVERY,
+    START_WINDOW,
     STORE_DROP_AFTER,
     STORE_KEY,
     STORE_SAVE_DELAY,
@@ -71,6 +76,13 @@ class Keeper:
         self._platforms = set(options.get(CONF_PLATFORMS) or DEFAULT_PLATFORMS)
         self._non_numeric = bool(options.get(CONF_NON_NUMERIC, DEFAULT_NON_NUMERIC))
         self._exclude = set(options.get(CONF_EXCLUDE) or [])
+        silent = float(options.get(CONF_SILENT_HOURS, DEFAULT_SILENT_HOURS) or 0)
+        self.silent_hours = silent
+        self._silent_after: float | None = silent * 3600 if silent > 0 else None
+        self._silent_last: frozenset[str] = frozenset()
+        # the sensors that came up "unknown" at the last start -> when
+        self._came_up: dict[str, float] = {}
+        self._came_up_at = 0.0
         self._store: Store[dict[str, Any]] = Store(hass, STORE_VERSION, STORE_KEY)
         # entity_id -> {"s": state, "t": last seen (unix seconds)}
         self._values: dict[str, dict[str, Any]] = {}
@@ -81,6 +93,7 @@ class Keeper:
         # for the sensors that show a kept value right now
         self._kept: dict[str, float] = {}
         self._listeners: list[Callable[[], None]] = []
+        self._notify_pending = False
         self.on_unknown: Callable[[str], None] | None = None
         self.stats: dict[str, Any] = {
             "restored": 0,
@@ -119,6 +132,11 @@ class Keeper:
         self._unsubs.append(
             bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._on_registry)
         )
+        self._unsubs.append(
+            async_track_time_interval(
+                self.hass, self._tick, timedelta(seconds=SILENT_CHECK_EVERY)
+            )
+        )
 
         # Entities that are already there (this entry was set up after Tuya,
         # or the options changed and the entry was reloaded).
@@ -126,9 +144,11 @@ class Keeper:
             if not self._is_watched(state.entity_id):
                 continue
             if state.state == STATE_UNKNOWN:
+                self._came_up_unknown(state.entity_id)
                 self._unknown(state.entity_id)
             else:
                 self._remember(state)
+        self._silent_last = frozenset(self.silent())
 
     async def async_stop(self) -> None:
         """Stop listening and save what we have."""
@@ -155,6 +175,32 @@ class Keeper:
         """Sensors showing a kept value now -> when it was really seen."""
         return dict(self._kept)
 
+    @property
+    def came_up_unknown(self) -> dict[str, float]:
+        """Sensors that came up "unknown" at the last start -> when."""
+        return dict(self._came_up)
+
+    @property
+    def came_up_at(self) -> float:
+        """When the last start (with sensors coming up unknown) was."""
+        return self._came_up_at
+
+    @callback
+    def silent(self) -> dict[str, float]:
+        """Watched sensors with no real value for longer than the limit.
+
+        A battery device that stopped reporting (empty battery, out of range)
+        usually still looks fine in Home Assistant; this finds it.
+        """
+        if self._silent_after is None:
+            return {}
+        limit = time.time() - self._silent_after
+        return {
+            eid: rec["t"]
+            for eid, rec in self._values.items()
+            if rec["t"] < limit and self._is_watched(eid)
+        }
+
     @callback
     def watched_entities(self) -> list[str]:
         """Every sensor in the registry that is watched (live list)."""
@@ -179,7 +225,18 @@ class Keeper:
 
     @callback
     def notify(self) -> None:
-        """Tell the listeners (the integration's own sensors)."""
+        """Tell the listeners (the integration's own sensors), once per turn.
+
+        Many changes at once (a start: dozens of sensors) become one update.
+        """
+        if self._notify_pending:
+            return
+        self._notify_pending = True
+        self.hass.loop.call_soon(self._notify_now)
+
+    @callback
+    def _notify_now(self) -> None:
+        self._notify_pending = False
         for listener in list(self._listeners):
             listener()
 
@@ -227,10 +284,34 @@ class Keeper:
         self.notify()
 
     @callback
+    def _came_up_unknown(self, entity_id: str) -> None:
+        now = time.time()
+        if now - self._came_up_at > START_WINDOW:
+            self._came_up.clear()  # a new start
+        self._came_up_at = now
+        self._came_up[entity_id] = now
+        self.notify()
+
+    @callback
+    def _tick(self, _now: Any) -> None:
+        silent = frozenset(self.silent())
+        if silent != self._silent_last:
+            self._silent_last = silent
+            self.notify()
+
+    @callback
     def _on_changed(self, event: Event) -> None:
         new: State | None = event.data.get("new_state")
         if new is not None and new.attributes.get(ATTR_RESTORED):
             return  # our own write
+        old: State | None = event.data.get("old_state")
+        if (
+            new is not None
+            and new.state == STATE_UNKNOWN
+            and (old is None or old.state == STATE_UNAVAILABLE)
+        ):
+            # Added (start of Home Assistant or a reload of Tuya) as unknown.
+            self._came_up_unknown(new.entity_id)
         # Anything else (a real value, unknown, unavailable, removed) means
         # the sensor no longer shows its kept value.
         if self._kept.pop(event.data["entity_id"], None) is not None:
@@ -258,6 +339,9 @@ class Keeper:
         seen = getattr(state, "last_reported_timestamp", None) or time.time()
         self._values[state.entity_id] = {"s": state.state, "t": float(seen)}
         self._save_later()
+        if state.entity_id in self._silent_last:
+            self._silent_last = frozenset(self.silent())
+            self.notify()
 
     @callback
     def _save_later(self) -> None:

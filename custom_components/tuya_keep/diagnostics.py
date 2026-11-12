@@ -43,6 +43,8 @@ async def async_get_config_entry_diagnostics(
         "tuya_entries_loaded": tuya_loaded,
         "watched_sensors": data.keeper.watched_count,
         "stored_values": data.keeper.stored_count,
+        "silent_now": len(data.keeper.silent()),
+        "came_up_unknown_last_start": len(data.keeper.came_up_unknown),
         "restore": dict(data.keeper.stats),
         "cloud": dict(data.sync.stats) if data.sync is not None else None,
     }

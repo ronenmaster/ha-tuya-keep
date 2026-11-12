@@ -13,6 +13,7 @@ CONF_MAX_AGE_HOURS: Final = "max_age_hours"
 CONF_PLATFORMS: Final = "platforms"
 CONF_NON_NUMERIC: Final = "include_non_numeric"
 CONF_EXCLUDE: Final = "exclude_entities"
+CONF_SILENT_HOURS: Final = "silent_hours"
 CONF_CLOUD: Final = "cloud"
 CONF_CLOUD_ENDPOINT: Final = "endpoint"
 CONF_CLOUD_ACCESS_ID: Final = "access_id"
@@ -21,6 +22,12 @@ CONF_CLOUD_ACCESS_SECRET: Final = "access_secret"
 DEFAULT_MAX_AGE_HOURS: Final = 24
 DEFAULT_PLATFORMS: Final = ["tuya"]
 DEFAULT_NON_NUMERIC: Final = False
+DEFAULT_SILENT_HOURS: Final = 6
+
+# Sensors that came up "unknown" within this long of each other belong to
+# the same start (of Home Assistant or of the Tuya integration).
+START_WINDOW: Final = 600  # seconds
+SILENT_CHECK_EVERY: Final = 300  # seconds
 
 # Attributes added to a state written by this integration.
 ATTR_RESTORED: Final = "tuya_keep_restored"

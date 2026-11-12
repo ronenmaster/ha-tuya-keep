@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- New sensor *Silent sensors*: watched sensors with no new value for longer than *Silent after* (new option, default 6 h), usually an empty battery or a device out of range.
+- New sensor *Came up unknown at the last start*: which sensors came up "Unknown" at the last start; when it stays 0 the official fix has probably landed.
+- Sensor updates are batched (one update for many changes at once).
+
 ## 1.1.0
 
 - Live sensors on the integration's page (a *Tuya Keep* service device): sensors showing a kept value now (with their names and when each value was really seen), watched sensors, values restored since start, last restore; with the cloud layer also values filled from the cloud and the cloud status.

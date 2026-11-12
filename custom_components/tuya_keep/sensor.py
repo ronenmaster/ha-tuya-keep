@@ -46,6 +46,39 @@ def _kept_attrs(hass: HomeAssistant, data: TuyaKeepData) -> dict[str, Any]:
     }
 
 
+def _times_attrs(
+    hass: HomeAssistant, times: dict[str, float], extra: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    ids = sorted(times)
+    attrs: dict[str, Any] = {
+        "sensors": _names(hass, ids),
+        "entity_ids": ids,
+        "last_seen": {
+            eid: dt_util.utc_from_timestamp(times[eid]).isoformat() for eid in ids
+        },
+    }
+    if extra:
+        attrs.update(extra)
+    return attrs
+
+
+def _silent_attrs(hass: HomeAssistant, data: TuyaKeepData) -> dict[str, Any]:
+    return _times_attrs(
+        hass, data.keeper.silent(), {"silent_after_hours": data.keeper.silent_hours}
+    )
+
+
+def _came_up_attrs(hass: HomeAssistant, data: TuyaKeepData) -> dict[str, Any]:
+    came = data.keeper.came_up_unknown
+    ids = sorted(came)
+    at = data.keeper.came_up_at
+    return {
+        "sensors": _names(hass, ids),
+        "entity_ids": ids,
+        "start": dt_util.utc_from_timestamp(at).isoformat() if at else None,
+    }
+
+
 def _watched_attrs(hass: HomeAssistant, data: TuyaKeepData) -> dict[str, Any]:
     ids = data.keeper.watched_entities()
     return {"sensors": _names(hass, ids), "entity_ids": ids}
@@ -100,6 +133,20 @@ SENSORS: tuple[KeepSensorDescription, ...] = (
         value_fn=_last_restore,
     ),
     KeepSensorDescription(
+        key="silent",
+        translation_key="silent",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda _h, d: len(d.keeper.silent()),
+        attrs_fn=_silent_attrs,
+    ),
+    KeepSensorDescription(
+        key="came_up_unknown",
+        translation_key="came_up_unknown",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda _h, d: len(d.keeper.came_up_unknown),
+        attrs_fn=_came_up_attrs,
+    ),
+    KeepSensorDescription(
         key="cloud_filled",
         translation_key="cloud_filled",
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -149,7 +196,9 @@ class KeepSensor(SensorEntity):
     _attr_has_entity_name = True
     _attr_should_poll = False
     # Long lists: shown on the entity, kept out of the recorder.
-    _unrecorded_attributes = frozenset({"sensors", "entity_ids", "last_seen"})
+    _unrecorded_attributes = frozenset(
+        {"sensors", "entity_ids", "last_seen", "start", "silent_after_hours"}
+    )
     entity_description: KeepSensorDescription
 
     def __init__(

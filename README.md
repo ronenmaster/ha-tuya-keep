@@ -119,6 +119,7 @@ The official Tuya integration must be set up as usual. Tuya Keep only works next
 | Also keep text values | off | Off: only numbers (temperature, humidity, battery, power...). On: also text states such as `low` or `charging`. |
 | Integrations to watch | `tuya` | Sensors of these integrations are watched. `tuya` is the official Tuya integration. You can add others that have the same "Unknown after restart" behavior. |
 | Sensors to leave alone | none | These sensors are never restored. |
+| Silent after | 6 h | A watched sensor with no new value for this long is listed in *Silent sensors*. 0 = off. |
 | Read real values from the Tuya cloud | not used | The optional layer 2. See below. |
 
 Saving the settings reloads Tuya Keep; no restart is needed.
@@ -173,6 +174,8 @@ You can use the attributes in templates, for example:
 | Watched sensors | How many sensors are watched; the attributes list them. |
 | Values restored since start | How many times a value was put back since Home Assistant started. |
 | Last restore | When a value was last put back. |
+| Silent sensors | Watched sensors with no new value for longer than *Silent after* (default 6 h): usually an empty battery or a device out of range, which Home Assistant itself does not notice. The attributes list them with the time each was last seen. |
+| Came up unknown at the last start | How many sensors came up "Unknown" at the last start of Home Assistant or reload of Tuya, and which. When this stays 0 after several restarts, the official integration has probably fixed the bug and Tuya Keep can be removed. |
 | Values filled from the cloud, Cloud status | Only with the cloud layer: how many real values came from the cloud, and whether the last read worked (the attribute `last_error` says why not). |
 
 The long lists are kept out of the recorder, so they do not grow the database.

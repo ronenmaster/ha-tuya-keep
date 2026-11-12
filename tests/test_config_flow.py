@@ -25,6 +25,7 @@ def _form(cloud: dict[str, str]) -> dict:
         "include_non_numeric": False,
         "platforms": ["tuya"],
         "exclude_entities": [],
+        "silent_hours": 6,
         "cloud": cloud,
     }
 
