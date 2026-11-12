@@ -28,7 +28,13 @@ BASE = "https://openapi.tuyaeu.com"
 TOKEN_URL = f"{BASE}/v1.0/token?grant_type=1"
 TOKEN_OK = {"success": True, "result": {"access_token": "tok", "expire_time": 7200}}
 CLOUD = {"endpoint": "eu", "access_id": "test-id", "access_secret": "test-secret"}
-RANGES = ("va_temperature", "va_humidity", "battery_percentage")
+RANGES = {
+    "va_temperature": "Integer",
+    "va_humidity": "Integer",
+    "battery_percentage": "Integer",
+    "smoke_sensor_status": "Enum",
+    "doorcontact_state": "Boolean",
+}
 
 
 def _device(
@@ -40,7 +46,9 @@ def _device(
     return SimpleNamespace(
         id=dev_id,
         status=dict(status or {}),
-        status_range={code: object() for code in RANGES},
+        status_range={
+            code: SimpleNamespace(code=code, type=kind) for code, kind in RANGES.items()
+        },
         support_local=local,
         local_strategy=strategy or {},
     )
@@ -240,3 +248,14 @@ async def test_wrong_keys_stop_after_the_token(
     assert aioclient_mock.call_count == 1
     assert manager.reports == []
     assert "sign invalid" in entry.runtime_data.sync.stats["last_error"]
+
+
+def test_alarm_and_on_off_states_are_never_filled() -> None:
+    """An old 'alarm' in the cloud must not become a false alarm."""
+    device = _device("smoke1")
+    props = [
+        {"code": "smoke_sensor_status", "dp_id": 1, "value": "alarm"},
+        {"code": "doorcontact_state", "dp_id": 2, "value": True},
+        {"code": "battery_percentage", "dp_id": 15, "value": 80},
+    ]
+    assert build_report(device, props) == [{"code": "battery_percentage", "value": 80}]

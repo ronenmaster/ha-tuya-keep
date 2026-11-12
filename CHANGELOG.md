@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Cloud layer: only number readings (status type Integer) are filled from the device shadow. Alarm and on/off states (smoke, water leak, door, motion) are never filled, so an old "alarm" kept in the cloud cannot become a false alarm after a restart.
+
 ## 1.0.1
 
 - Own icon (custom_components/tuya_keep/brand), shown by Home Assistant 2026 and later.

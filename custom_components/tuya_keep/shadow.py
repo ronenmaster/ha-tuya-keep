@@ -144,11 +144,27 @@ class TuyaOpenApi:
         return props if isinstance(props, list) else []
 
 
+# Only number readings (temperature, humidity, battery...) are filled from
+# the cloud. Alarm and on/off states (smoke, water, door, motion) are Enum or
+# Boolean and are never filled: an old "alarm" kept in the cloud would raise
+# a false alarm in Home Assistant.
+_FILL_TYPES = {"integer"}
+
+
+def _fillable_codes(device: Any) -> set[str]:
+    """Status codes whose old value is safe to show again (numbers)."""
+    ranges = getattr(device, "status_range", None) or {}
+    return {
+        code
+        for code, spec in ranges.items()
+        if str(getattr(spec, "type", "") or "").lower() in _FILL_TYPES
+    }
+
+
 def _missing_codes(device: Any) -> set[str]:
-    """Status codes the device should have but has no value for."""
+    """Number codes the device should have but has no value for."""
     status = getattr(device, "status", None) or {}
-    wanted = set((getattr(device, "status_range", None) or {}).keys())
-    return {code for code in wanted if status.get(code) is None}
+    return {code for code in _fillable_codes(device) if status.get(code) is None}
 
 
 def build_report(device: Any, props: list[dict[str, Any]]) -> list[dict[str, Any]]:

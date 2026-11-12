@@ -76,6 +76,7 @@ Two layers. The first one always works and needs nothing. The second one is opti
 
 - If you give Tuya Keep the keys of your own (free) **Tuya IoT cloud project**, then a few seconds after a restart it reads the **real last values** of the devices whose status came back empty.
 - It hands those values to the **official integration's own update path**, exactly as if the devices had just reported them. The official entities then show real values, not kept ones.
+- Only **number readings** (temperature, humidity, battery, power...) are taken from the cloud. Alarm and on/off states (smoke, water leak, door, motion) are never filled: an old "alarm" kept in the cloud would become a false alarm.
 - If anything fails (no internet, wrong keys, an account that is not linked, a Tuya change), nothing breaks: layer 1 stays in charge.
 
 ## Install
@@ -173,7 +174,7 @@ You can use the attributes in templates, for example:
 - **Restoring:** when a watched sensor's state becomes `unknown`, Tuya Keep writes the kept value into Home Assistant's state machine, with the sensor's own attributes (unit, device class, name) plus `tuya_keep_restored` and `tuya_keep_last_seen`. The "unknown" state reaches every other listener first, then the restored one follows, so nothing gets the two out of order.
 - **First start:** if a sensor has no kept value yet, the newest real value in the recorder history (last 10 days, within the age limit) is used.
 - **Never touched:** `unavailable` (the device is offline: that is the truth), entities of other integrations, excluded sensors, values older than the limit.
-- **Cloud layer:** reads `GET /v2.0/cloud/thing/{device_id}/shadow/properties` of Tuya's OpenAPI, signed with your project keys, only for devices whose status is missing values, and only values the device has none of (so it never overwrites a fresher report). The values are passed to the Tuya SDK's own report handler, the same path a real device report takes. Each device is read once per start or reload of the official integration; network errors are retried up to 3 times, a refusal (for example "permission deny") is not retried.
+- **Cloud layer:** reads `GET /v2.0/cloud/thing/{device_id}/shadow/properties` of Tuya's OpenAPI, signed with your project keys, only for devices whose status is missing number values, and only number values (status type Integer) the device has none of (so it never overwrites a fresher report). The values are passed to the Tuya SDK's own report handler, the same path a real device report takes. Each device is read once per start or reload of the official integration; network errors are retried up to 3 times, a refusal (for example "permission deny") is not retried.
 
 ## Limits
 
