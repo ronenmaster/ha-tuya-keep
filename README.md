@@ -20,7 +20,7 @@
 
 | | Without Tuya Keep | With Tuya Keep |
 |---|---|---|
-| **After a restart** | Tuya sensors show **Unknown** for up to an hour | Each Tuya sensor has a **"last value" companion** that shows the last value at once, marked as not live. **The Tuya sensors are not touched** |
+| **After a restart** | Tuya sensors show **Unknown** for up to an hour | Each Tuya number sensor gets a **"last value" companion** that shows the last value at once, marked as not live. **The Tuya sensors are not touched** |
 | **Smoke detectors** | **"Smoke detected"** every few hours, with no smoke, and it stays | **No false alarms** from unknown values. **Real alarms are never touched** |
 | **Dead batteries** | A device that stopped reporting goes unnoticed | It is **listed as silent**, with the time it was last seen |
 
@@ -42,6 +42,7 @@ Works for every current and future Tuya device, with nothing to set per device. 
 - [Limits](#limits)
 - [Privacy](#privacy)
 - [When to remove it](#when-to-remove-it)
+- [Reporting a problem to Home Assistant](#reporting-a-problem-to-home-assistant)
 - [Troubleshooting](#troubleshooting)
 - [Development](#development)
 
@@ -120,7 +121,7 @@ The official Tuya integration must be set up as usual. Tuya Keep only works next
 | Setting | Default | What it does |
 |---|---|---|
 | How to keep the last value | Companion sensors | *Companion sensors* (recommended): a "last value" sensor next to each Tuya sensor, the Tuya sensors untouched. *In the Tuya sensor itself*: the value is written back into it (the first versions' way; entries made before 1.4.0 keep it). |
-| Keep a value for at most | 24 h | A kept value older than this is not put back; the sensor stays Unknown until the device reports. 0 = no limit. |
+| Keep a value for at most | 24 h | A kept value older than this is not shown: the companion (in place mode: the Tuya sensor) shows Unknown until the device reports. 0 = no limit. |
 | Also keep text values | off | Off: only numbers (temperature, humidity, battery, power...). On: also text states such as `low` or `charging`. |
 | Integrations to watch | `tuya` | Sensors of these integrations are watched. `tuya` is the official Tuya integration. |
 | Sensors to leave alone | none | These sensors are never restored. |
@@ -217,7 +218,8 @@ Before you report a Tuya problem to Home Assistant, **reproduce it with Tuya Kee
 
 | What you see | What to check |
 |---|---|
-| Still Unknown after a restart | Was there a real value in the last 24 h (or your limit)? A brand new sensor has nothing to keep yet. Is the sensor's integration `tuya`? |
+| The Tuya sensor is Unknown after a restart | Expected in companion mode: the Tuya sensor is left as Home Assistant has it. Look at its *last value* companion (`sensor.<name>_last`). |
+| The companion (or, in place mode, the sensor) is still Unknown | Was there a real value in the last 24 h (or your limit)? A brand new sensor has nothing to keep yet. Is the sensor's integration `tuya`? |
 | A smoke detector still shows smoke | A false alarm from before the update clears at the next restart. Afterwards, check *Unknown values ignored*: its `recent` attribute shows what was ignored. A real alarm (`"1"` or `"alarm"`) is never ignored. |
 | Values are restored but very old | Lower *Keep a value for at most*, or set up the cloud part. |
 | A sensor is listed as silent | Check its battery and range; the time it was last seen is in the attributes. |
